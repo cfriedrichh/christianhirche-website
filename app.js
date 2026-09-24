@@ -8,7 +8,7 @@ const papers=[
 ];
 document.querySelector('#publications').innerHTML=papers.map(([year,title,authors,journal,url])=>`<article class="publication"><span class="pub-year">${year}</span><div><h3><a href="${url}">${title}</a></h3><p>${authors}</p><p class="journal">${journal}</p></div><span class="arrow" aria-hidden="true">↗</span></article>`).join('');
 document.querySelector('#year').textContent=new Date().getFullYear();
-const canvas=document.querySelector('#scene'),button=document.querySelector('#motion'),hero=canvas.parentElement;
+const canvas=document.querySelector('#scene'),hero=canvas.parentElement;
 try{
 const THREE=await import('./assets/three.module.js');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
@@ -19,19 +19,15 @@ const camera=new THREE.PerspectiveCamera(38,1,.1,100);
 camera.position.set(0,4.5,11);camera.lookAt(0,.5,0);
 const group=new THREE.Group();scene.add(group);group.rotation.y=-.32;
 const rows=46,bins=144,spectra=[];
-const low=new THREE.Color(0x518f9e),high=new THREE.Color(0xdbe9a3);
+const low=new THREE.Color(0x627c80),high=new THREE.Color(0xa2ad90);
 for(let row=0;row<rows;row++){
   const positions=new Float32Array(bins*3),colors=new Float32Array(bins*3);
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3).setUsage(THREE.DynamicDrawUsage));
-  const material=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.28+.36*(row/(rows-1)),depthWrite:false});
+  const material=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.16+.23*(row/(rows-1)),depthWrite:false});
   group.add(new THREE.Line(geometry,material));spectra.push({geometry,positions,colors});
 }
-const waveformGeometry=new THREE.BufferGeometry();
-const waveformPositions=new Float32Array(bins*3);
-waveformGeometry.setAttribute('position',new THREE.BufferAttribute(waveformPositions,3).setUsage(THREE.DynamicDrawUsage));
-group.add(new THREE.Line(waveformGeometry,new THREE.LineBasicMaterial({color:0xdbe9a3,transparent:true,opacity:.7,depthWrite:false})));
 const tint=new THREE.Color();
 function updateSpectrum(time){
   for(let row=0;row<rows;row++){
@@ -56,42 +52,62 @@ function updateSpectrum(time){
     }
     geometry.attributes.position.needsUpdate=true;geometry.attributes.color.needsUpdate=true;
   }
-  for(let bin=0;bin<bins;bin++){
-    const f=bin/(bins-1),phase=f*Math.PI*16-time*1.6;
-    const envelope=Math.sin(Math.PI*f)**1.4;
-    waveformPositions[bin*3]=(f-.5)*8;
-    waveformPositions[bin*3+1]=-.72+envelope*(Math.sin(phase)*.19+Math.sin(phase*2+.5)*.08+Math.sin(phase*3)*.035);
-    waveformPositions[bin*3+2]=3.1;
-  }
-  waveformGeometry.attributes.position.needsUpdate=true;
+
 }
 updateSpectrum(0);
 // Keep dynamic geometry bounds stable as the peaks move.
 for(const {geometry} of spectra)geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,1,0),7);
-waveformGeometry.computeBoundingSphere();
-const media=matchMedia('(prefers-reduced-motion: reduce)');let paused=media.matches,visible=true,tx=0,ty=0,frame,elapsed=0;
-const sync=()=>{button.textContent=paused?'Play motion':'Pause motion';button.setAttribute('aria-pressed',String(paused))};sync();
-const draw=()=>renderer.render(scene,camera);
+let visible=true,tx=0,ty=0,frame,elapsed=0;
+// Decorative annotations are projected from the actual moving wave vertices.
+const labels=document.createElement('div');
+labels.className='wave-labels';labels.setAttribute('aria-hidden','true');hero.append(labels);
+const words=['impact','result','insight','predict','discover','signal'];
+const annotations=words.map((word,i)=>{
+  const el=document.createElement('span');el.className='wave-label';
+  const number=document.createElement('span'),meaning=document.createElement('span');
+  meaning.textContent=word;el.append(number,meaning);labels.append(el);
+  return {el,number,meaning,row:12+i*6,bin:18+i*15,word};
+});
+const point=new THREE.Vector3();
+const smooth=(a,b,t)=>{const x=THREE.MathUtils.clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
+const draw=()=>{
+  renderer.render(scene,camera);
+  const width=canvas.clientWidth,height=canvas.clientHeight;
+  annotations.forEach(({el,number,meaning,row,bin},i)=>{
+    const cycle=(elapsed+i*1.4)%10;
+    const opacity=smooth(0,1.4,cycle)*(1-smooth(7.5,9.5,cycle));
+    const morph=smooth(3,4.8,cycle);
+    point.fromArray(spectra[row].positions,bin*3);group.localToWorld(point);point.project(camera);
+    const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;
+    el.style.transform=`translate(${x}px,${y-14}px) translate(-50%,-100%)`;
+    const edge=smooth(10,65,x)*(1-smooth(width-65,width-10,x))*smooth(20,70,y)*(1-smooth(height-50,height,y));
+    el.style.opacity=opacity*edge*.30;
+    number.textContent=(.1+((i*137+Math.floor(elapsed/10)*71)%890)/1000).toFixed(3);
+    number.style.opacity=1-morph;meaning.style.opacity=morph;
+  });
+};
 const resize=()=>{
-  const r=hero.getBoundingClientRect();renderer.setSize(r.width,r.height,false);
+  const r=canvas.getBoundingClientRect();renderer.setSize(r.width,r.height,false);
   camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
-  group.position.x=r.width>700?camera.aspect*1.35:.8;
-  group.scale.setScalar(r.width>700?1.05:.85);draw();
+  // Crop into the surface instead of fitting a complete object into the hero.
+  const mobile=r.width<=700;
+  group.position.set(mobile?2.5:camera.aspect*.55,mobile?-.25:-.35,0);
+  group.scale.set(mobile?1.55:1.8,mobile?1.15:1.3,1.65);
+  draw();
 };new ResizeObserver(resize).observe(hero);
 let last=0;
 function animate(t){
-  frame=undefined;if(paused||!visible||document.hidden)return;
+  frame=undefined;if(!visible||document.hidden)return;
   const delta=Math.min((t-last)/1000,.05);last=t;elapsed+=delta;
   updateSpectrum(elapsed);
   group.rotation.y+=(-.32+tx*.12-group.rotation.y)*.035;
   group.rotation.x+=(ty*.055-group.rotation.x)*.035;
   draw();frame=requestAnimationFrame(animate);
 }
-function start(){if(!frame&&!paused&&visible&&!document.hidden){last=performance.now();frame=requestAnimationFrame(animate)}}
-button.addEventListener('click',()=>{paused=!paused;sync();start()});
-hero.addEventListener('pointermove',e=>{if(paused)return;const r=hero.getBoundingClientRect();tx=(e.clientX-r.left)/r.width-.5;ty=(e.clientY-r.top)/r.height-.5});
+function start(){if(!frame&&visible&&!document.hidden){last=performance.now();frame=requestAnimationFrame(animate)}}
+hero.addEventListener('pointermove',e=>{const r=hero.getBoundingClientRect();tx=(e.clientX-r.left)/r.width-.5;ty=(e.clientY-r.top)/r.height-.5});
 hero.addEventListener('pointerleave',()=>{tx=ty=0});
 new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;start()}).observe(canvas);
 document.addEventListener('visibilitychange',start);
-media.addEventListener('change',e=>{paused=e.matches;sync();start()});resize();start();
-}catch(e){canvas.remove();button.hidden=true;}
+resize();start();
+}catch(e){canvas.remove();hero.querySelector('.wave-labels')?.remove();console.warn('Wave visualization unavailable:',e);}

@@ -5,7 +5,7 @@
 header{background:#172027;color:#f4f5ed;border-bottom-color:#354047}
 .hero{position:relative;isolation:isolate;display:block;overflow:hidden;background:#172027;color:#f4f5ed;padding-top:80px}
 .hero #scene{position:absolute;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none}
-.hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(23,32,39,.97) 0%,rgba(23,32,39,.86) 29%,rgba(23,32,39,.38) 60%,rgba(23,32,39,.08) 100%)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(23,32,39,.62) 0%,rgba(23,32,39,.46) 29%,rgba(23,32,39,.14) 60%,rgba(23,32,39,.06) 100%)}
 .hero-copy{position:relative;max-width:900px;padding-bottom:80px;pointer-events:none}
 .hero-copy a{pointer-events:auto}
 .hero h1{font-size:clamp(52px,6.7vw,104px)}
@@ -13,8 +13,23 @@ header{background:#172027;color:#f4f5ed;border-bottom-color:#354047}
 .hero .intro{color:#c5ced0;max-width:480px}
 .hero .text-link{border-color:#a9b4b7}
 .hero-bottom{position:relative;align-items:center;color:#c5ced0;border-top:1px solid #465157;border-bottom:0;margin-top:0;gap:20px}
-#motion{background:transparent;border:1px solid #778486;color:#e7eddf;font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:.02em}
-#motion:hover{background:#344047}
+
+
 @media(max-width:900px){.hero{padding-top:60px}.hero-copy{padding-bottom:65px}.hero h1{font-size:clamp(52px,7.5vw,76px)}}
-@media(max-width:600px){.hero{padding-top:45px}.hero h1{font-size:clamp(43px,10.8vw,65px)}.hero-copy{padding-bottom:55px}.hero::before{background:linear-gradient(90deg,rgba(23,32,39,.92),rgba(23,32,39,.64)),linear-gradient(0deg,rgba(23,32,39,.55),transparent)}.hero-bottom{display:flex;flex-wrap:wrap;gap:15px;font-size:10px}.hero-bottom>span{margin-left:auto}.hero-bottom>a{width:100%}#motion{font-size:12px}}
+@media(max-width:600px){.hero{padding-top:45px}.hero h1{font-size:clamp(43px,10.8vw,65px)}.hero-copy{padding-bottom:55px}.hero::before{background:linear-gradient(90deg,rgba(23,32,39,.92),rgba(23,32,39,.64)),linear-gradient(0deg,rgba(23,32,39,.55),transparent)}.hero-bottom{display:flex;flex-wrap:wrap;gap:15px;font-size:10px}.hero-bottom>span{margin-left:auto}.hero-bottom>a{width:100%}}
 @media print{.hero{background:white;color:black}.hero::before,.hero #scene{display:none}.hero h1 em,.hero .intro{color:black}.hero-copy{padding:0}}
+
+/* Wave annotations use the same quiet acid accent as the hero typography. */
+.wave-labels{position:absolute;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.wave-label{position:absolute;top:0;left:0;color:#c0c8b2;font-family:'Manrope',Arial,sans-serif;font-size:17px;font-weight:800;letter-spacing:.035em;line-height:1.4;will-change:transform,opacity}
+.wave-label>span{display:block;grid-area:1/1}
+.wave-label{display:grid;text-align:center}
+.hero-bottom>span:first-child{display:inline}
+@media(max-width:700px){
+  .hero-copy{padding-bottom:95px}
+  .hero #scene,.wave-labels{inset:0;height:100%;width:100%}
+  .hero::before{background:linear-gradient(180deg,rgba(23,32,39,.46) 0%,rgba(23,32,39,.24) 45%,rgba(23,32,39,.12) 100%)}
+  .hero-bottom>span{margin-left:0}
+  .wave-label{font-size:16px}
+}
+@media print{.wave-labels{display:none}}
