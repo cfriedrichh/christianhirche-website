@@ -33,3 +33,12 @@ header{background:#172027;color:#f4f5ed;border-bottom-color:#354047}
   .wave-label{font-size:16px}
 }
 @media print{.wave-labels{display:none}}
+
+/* Keep the content at its current width while color bands fill wide screens. */
+@media(min-width:1600px){
+  body{overflow-x:clip}
+  header{max-width:none;padding-inline:max(5%,calc((100vw - 1800px)/2 + 90px))}
+  main>.hero,main>.research,main>footer{width:100vw;margin-left:calc(50% - 50vw)}
+  main>.hero,main>footer{padding-inline:max(5%,calc((100vw - 1800px)/2 + 90px))}
+  main>.research>.section{max-width:1800px;margin-inline:auto}
+}
